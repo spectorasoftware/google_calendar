@@ -97,14 +97,14 @@ class TestGoogleCalendar < Minitest::Test
         end
       end       
 
-      should "throw ForbiddenError if unknown 403 response" do
+      should "throw Unclassified403Error if unknown 403 response" do
         @client_mock.stubs(:status).returns(403)
         @client_mock.stubs(:body).returns( get_mock_body("403_unknown.json") )
 
-        assert_raises(ForbiddenError) do
+        assert_raises(Unclassified403Error) do
           @calendar.find_event_by_id('1234')
         end
-      end   
+      end
 
     end # login context
 
@@ -245,6 +245,33 @@ class TestGoogleCalendar < Minitest::Test
         @client_mock.stubs(:body).returns( get_mock_body("403_calendar_rate_limit.json") )
 
         assert_raises(CalendarUsageLimitExceededError) do
+          @calendar.find_event_by_id('1234')
+        end
+      end
+
+      should "throw RateLimitExceededError when a quota 403 carries a modern message" do
+        @client_mock.stubs(:status).returns(403)
+        @client_mock.stubs(:body).returns( get_mock_body("403_quota_metric.json") )
+
+        assert_raises(RateLimitExceededError) do
+          @calendar.find_event_by_id('1234')
+        end
+      end
+
+      should "throw ForbiddenError when writer access is required" do
+        @client_mock.stubs(:status).returns(403)
+        @client_mock.stubs(:body).returns( get_mock_body("403_writer_access.json") )
+
+        assert_raises(ForbiddenError) do
+          @calendar.find_event_by_id('1234')
+        end
+      end
+
+      should "throw Unclassified403Error when the 403 body is not JSON" do
+        @client_mock.stubs(:status).returns(403)
+        @client_mock.stubs(:body).returns( "<html>blocked</html>" )
+
+        assert_raises(Unclassified403Error) do
           @calendar.find_event_by_id('1234')
         end
       end

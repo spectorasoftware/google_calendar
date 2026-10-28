@@ -1,0 +1,14 @@
+{
+ "error": {
+  "errors": [
+   {
+    "domain": "usageLimits",
+    "reason": "rateLimitExceeded",
+    "message": "Rate Limit Exceeded"
+   }
+  ],
+  "code": 403,
+  "message": "Quota exceeded for quota metric 'Queries' and limit 'Queries per minute per user' of service 'calendar-json.googleapis.com' for consumer 'project_number:123456789'.",
+  "status": "RESOURCE_EXHAUSTED"
+ }
+}
