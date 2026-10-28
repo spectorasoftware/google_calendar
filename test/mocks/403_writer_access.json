@@ -1,0 +1,13 @@
+{
+ "error": {
+  "errors": [
+   {
+    "domain": "calendar",
+    "reason": "requiredAccessLevel",
+    "message": "You need to have writer access to this calendar."
+   }
+  ],
+  "code": 403,
+  "message": "You need to have writer access to this calendar."
+ }
+}
