@@ -167,18 +167,58 @@ module Google
       end
     end
 
+    # Machine-readable reason codes documented by the Calendar API. Google
+    # rewrites the human-readable messages freely, so reasons are the
+    # authoritative classifier.
+    REASON_403_ERRORS = {
+      "dailyLimitExceeded"          => DailyLimitExceededError,
+      "userRateLimitExceeded"       => UserRateLimitExceededError,
+      "rateLimitExceeded"           => RateLimitExceededError,
+      "quotaExceeded"               => CalendarUsageLimitExceededError,
+      "calendarUsageLimitsExceeded" => CalendarUsageLimitExceededError,
+      "forbidden"                   => ForbiddenError,
+      "insufficientPermissions"     => ForbiddenError,
+      "requiredAccessLevel"         => ForbiddenError,
+      "domainPolicy"                => ForbiddenError,
+    }.freeze
+
+    # Legacy fallback for error bodies that omit errors[]/reason.
+    MESSAGE_403_ERRORS = {
+      "Forbidden"                       => ForbiddenError,
+      "Daily Limit Exceeded"            => DailyLimitExceededError,
+      "User Rate Limit Exceeded"        => UserRateLimitExceededError,
+      "Rate Limit Exceeded"             => RateLimitExceededError,
+      "Calendar usage limits exceeded." => CalendarUsageLimitExceededError,
+    }.freeze
+
+    # Newer error bodies may carry only a gRPC-style status.
+    STATUS_403_ERRORS = {
+      "RESOURCE_EXHAUSTED" => RateLimitExceededError,
+      "PERMISSION_DENIED"  => ForbiddenError,
+    }.freeze
+
     #
     # Utility method to centralize handling of 403 errors.
     #
     def parse_403_error(response)
-      case JSON.parse(response.body)["error"]["message"]
-        when "Forbidden"                        then raise ForbiddenError, response.body
-        when "Daily Limit Exceeded"             then raise DailyLimitExceededError, response.body
-        when "User Rate Limit Exceeded"         then raise UserRateLimitExceededError, response.body
-        when "Rate Limit Exceeded"              then raise RateLimitExceededError, response.body
-        when "Calendar usage limits exceeded."  then raise CalendarUsageLimitExceededError, response.body
-        else                                    raise ForbiddenError, response.body
+      error = begin
+        JSON.parse(response.body)["error"]
+      rescue StandardError
+        nil
       end
+      error = {} unless error.is_a?(Hash)
+
+      Array(error["errors"]).each do |e|
+        klass = REASON_403_ERRORS[e["reason"]] if e.is_a?(Hash)
+        raise klass, response.body if klass
+      end
+
+      klass = MESSAGE_403_ERRORS[error["message"]] || STATUS_403_ERRORS[error["status"]]
+      raise klass, response.body if klass
+
+      # An unknown 403 must not raise ForbiddenError: callers treat
+      # ForbiddenError as proof the user lost calendar access.
+      raise Unclassified403Error, response.body
     end
 
     #

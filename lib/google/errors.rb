@@ -75,4 +75,12 @@ module Google
   # User has no authority to conduct the requested operation on the resource.
   # This is not a part of official Google Calendar API Errors documentation.
   class ForbiddenError < StandardError; end
+
+  #
+  # 403: Unclassified
+  #
+  # A 403 whose reason is not recognized. Deliberately NOT a ForbiddenError:
+  # callers treat ForbiddenError as proof the user lost access to the
+  # calendar, and an unrecognized 403 is not that proof.
+  class Unclassified403Error < StandardError; end
 end
